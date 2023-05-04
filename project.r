@@ -14,7 +14,7 @@ head(DF)
 
 #delete unused info
 DF<-DF[DF$Type != "GPU",]
-DF<-DF[DF$Vendor != "AMD",]
+#DF<-DF[DF$Vendor != "AMD",]
 DF<-DF[DF$Date_release != "NaT",]
 head(DF)
 
@@ -36,10 +36,29 @@ print(duplicates)
 DF<-unique(DF) #remove dup
 head(DF)
 
-interaction.plot<-ggplot(data = DF, aes(x = Process_size)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=100)+geom_density(color="red")+xlab("Total Interaction")+ylab("Frequency")
-#interaction.plot
+#summary
 summary(DF)
-hist(DF$Process_size, xlab = "million", main = "Histogram of process size")
+
+#plotting distribution of data
+Process_size.plot<-ggplot(data = DF, aes(x = Process_size)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=10) + geom_density(color="red") + xlab("Process size") + ylab("Frequency")
+Process_size.plot
+
+Frequency.plot<-ggplot(data = DF, aes(x = Frequency)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=100) + geom_density(color="red") + xlab("Frequency of CPU") + ylab("Frequency")
+Frequency.plot
+
+num_of_trans.plot<-ggplot(data = DF, aes(x = Num_of_transistors)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=150) + geom_density(color="red") + xlab("Number of transistors") + ylab("Frequency")
+num_of_trans.plot
+
+#Boxplot
+table(DF$Vendor)
+
+boxplot(DF$Frequency ~ DF$Vendor, data=DF, main="Frequency in CPU of each vendors", xlab="Vendors", ylab="Frequency of CPU")
+
+
+boxplot(DF$Num_of_transistors ~ DF$Vendor, data=DF, main="", xlab="Vendors", ylab="Number of transistor in one CPU")
+
+
+boxplot(DF$Process_size ~ DF$Vendor, data=DF, main="", xlab="Vendors", ylab="Process size of each CPU")
 
 ########## linear regression ##########
 #split data
@@ -70,5 +89,5 @@ plot(test_data$Frequency, type="l", col="blue", xlab="X-label", ylab="Frequency"
 lines(test_data$predictions, col="red")
 plot(model, which = 2)
 
-
+########## ANOVA ##########
 
