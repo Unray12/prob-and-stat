@@ -66,6 +66,7 @@ qqnorm(DF$Num_of_transistors, main="Num_of_transistors")
 qqline(DF$Num_of_transistors, col=6)
 
 par()
+#////////////////// test for anova //////////////////#
 #test normality
 p_test<-shapiro.test(DF$TDP)
 p_test
@@ -87,7 +88,7 @@ Frequency.plot
 
 num_of_trans.plot<-ggplot(data = DF, aes(x = Num_of_transistors)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=500) + geom_density(color="red") + xlab("Number of transistors") + ylab("Frequency")
 num_of_trans.plot
-
+#//////////////////////////////////////////////////#
 
 #Boxplot
 table(DF$Vendor)
@@ -107,11 +108,8 @@ train_data<-train_data[,c("Date_release", "Process_size", "Num_of_transistors", 
 test_data<-dplyr::anti_join(DF, train_data, by = "Date_release") #20% to test
 test_data<-test_data[,c("Date_release", "Process_size", "Num_of_transistors", "Frequency")]
 head(train_data, 20)
-head(test_data)
 
-#scale data
-#train_data$Num_of_transistors<-train_data$Num_of_transistors * 10^6
-#train_data$Frequency<-train_data$Frequency * 10^6
+head(test_data)
 head(train_data)
 
 #training model
@@ -120,6 +118,8 @@ summary(model)
 residual<-resid(model)
 residual_dis.plot<-ggplot(data = model, aes(x = residual)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=150) + geom_density(color="red") + xlab("Residual") + ylab("Frequency")
 residual_dis.plot
+
+
 
 #predict
 predict_pro_size<-predict(model, newdata = test_data)
