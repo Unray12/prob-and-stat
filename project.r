@@ -14,9 +14,10 @@ head(DF)
 
 #delete unused info
 DF<-DF[DF$Type != "GPU",]
+DF<-DF[DF$Vendor != "AMD",]
 DF<-DF[DF$Date_release != "NaT",]
-
 head(DF)
+
 #set data type
 DF[, c("Process_size", "TDP", "Die_size", "Num_of_transistors", "Frequency")]<-lapply(DF[, c("Process_size", "TDP", "Die_size", "Num_of_transistors", "Frequency")], as.numeric)
 DF$Date_release <- as.Date(DF$Date_release) #yyyy-mm-dd
@@ -40,8 +41,34 @@ interaction.plot<-ggplot(data = DF, aes(x = Process_size)) + geom_histogram(aes(
 summary(DF)
 hist(DF$Process_size, xlab = "million", main = "Histogram of process size")
 
-#linear regression
-set.seed(1)
+########## linear regression ##########
+#split data
+train_data<-DF %>% slice(1:ceiling(nrow(DF) * 0.8)) #80% first to train
+train_data<-train_data[,c("Date_release", "Process_size", "Num_of_transistors", "Frequency")]
+test_data<-dplyr::anti_join(DF, train_data, by = "Date_release") #20% to test
+test_data<-test_data[,c("Date_release", "Process_size", "Num_of_transistors", "Frequency")]
+head(train_data, 20)
+head(test_data)
+
+#scale data
+#train_data$Num_of_transistors<-train_data$Num_of_transistors * 10^6
+#train_data$Frequency<-train_data$Frequency * 10^6
+head(train_data)
+
+#training model
+model<-lm(Frequency ~ Num_of_transistors, data = train_data)
+summary(model)
+hist(resid(model))
+
+#predict
+predict_pro_size<-predict(model, newdata = test_data)
+test_data$predictions<-predict_pro_size
+#test_data$predictions<-test_data$predictions * (10^-6)
+head(test_data, 100)
+#plot prediction and reality
+plot(test_data$Frequency, type="l", col="blue", xlab="X-label", ylab="Frequency")
+lines(test_data$predictions, col="red")
+plot(model, which = 2)
 
 
 
