@@ -39,6 +39,23 @@ head(DF)
 #summary
 summary(DF)
 
+#split to 2 group Intel and AMD
+intel<-DF[DF$Vendor == "Intel",]
+head(intel)
+AMD<-DF[DF$Vendor == "AMD",]
+head(AMD)
+
+#Q Q plot
+qqnorm(DF$Die_size)
+qqline(DF$Die_size)
+#test normality
+p_test<-shapiro.test(DF$Die_size)
+p_test
+p_test<-p_test$p.value
+alpla<-0.05
+is_normal<-p_test < alpla
+is_normal
+
 #plotting distribution of data
 Process_size.plot<-ggplot(data = DF, aes(x = Process_size)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=10) + geom_density(color="red") + xlab("Process size") + ylab("Frequency")
 Process_size.plot
@@ -89,5 +106,17 @@ plot(test_data$Frequency, type="l", col="blue", xlab="X-label", ylab="Frequency"
 lines(test_data$predictions, col="red")
 plot(model, which = 2)
 
-########## ANOVA ##########
+########## ANOVA ONE-WAY ##########
+anova_model<-aov(cbind(Frequency, Num_of_transistors, Process_size) ~ Vendor, data=DF)
+summary(anova_model)
 
+#set significance
+alpla<-0.05
+
+#check P-values
+p_values<-summary(anova_model)[[1]][,5]
+p_values
+
+#Check which p-values are significant
+significant_p<-p_values < alpla
+significant_p #true or false
