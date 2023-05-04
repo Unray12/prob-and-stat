@@ -1,5 +1,6 @@
 library("ggplot2")
 library("dplyr")
+library("car")
 setwd("C:/Users/PCPV/Desktop/prob and stst project")
 DF<-read.csv("chip_dataset.csv")
 DF<-as.data.frame(DF) # format tha data into a table
@@ -44,17 +45,38 @@ intel<-DF[DF$Vendor == "Intel",]
 head(intel)
 AMD<-DF[DF$Vendor == "AMD",]
 head(AMD)
-
 #Q Q plot
-qqnorm(DF$Die_size)
-qqline(DF$Die_size)
+par(mfrow=c(1,3))
+qqnorm(DF$Die_size, main="Die_size")
+qqline(DF$Die_size, col=6)
+
+qqnorm(DF$Frequency, main="Frequency")
+qqline(DF$Frequency, col=6)
+
+
+qqnorm(DF$Process_size, main="Process_size")
+qqline(DF$Process_size, col=6)
+
+par(mfrow=c(1,2))
+
+qqnorm(DF$TDP, main="TDP")
+qqline(DF$TDP, col=6)
+
+qqnorm(DF$Num_of_transistors, main="Num_of_transistors")
+qqline(DF$Num_of_transistors, col=6)
+
+par()
 #test normality
-p_test<-shapiro.test(DF$Die_size)
+p_test<-shapiro.test(DF$TDP)
 p_test
 p_test<-p_test$p.value
 alpla<-0.05
-is_normal<-p_test < alpla
+is_normal<-p_test > alpla
 is_normal
+
+# test homogeneity of variance
+leveneTest(DF$Process_size ~ factor(DF$Vendor))
+leveneTest(DF$Frequency ~ factor(DF$Vendor))
 
 #plotting distribution of data
 Process_size.plot<-ggplot(data = DF, aes(x = Process_size)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=10) + geom_density(color="red") + xlab("Process size") + ylab("Frequency")
@@ -63,8 +85,9 @@ Process_size.plot
 Frequency.plot<-ggplot(data = DF, aes(x = Frequency)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=100) + geom_density(color="red") + xlab("Frequency of CPU") + ylab("Frequency")
 Frequency.plot
 
-num_of_trans.plot<-ggplot(data = DF, aes(x = Num_of_transistors)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=150) + geom_density(color="red") + xlab("Number of transistors") + ylab("Frequency")
+num_of_trans.plot<-ggplot(data = DF, aes(x = Num_of_transistors)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=500) + geom_density(color="red") + xlab("Number of transistors") + ylab("Frequency")
 num_of_trans.plot
+
 
 #Boxplot
 table(DF$Vendor)
@@ -94,7 +117,9 @@ head(train_data)
 #training model
 model<-lm(Frequency ~ Num_of_transistors, data = train_data)
 summary(model)
-hist(resid(model))
+residual<-resid(model)
+residual_dis.plot<-ggplot(data = model, aes(x = residual)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=150) + geom_density(color="red") + xlab("Residual") + ylab("Frequency")
+residual_dis.plot
 
 #predict
 predict_pro_size<-predict(model, newdata = test_data)
@@ -103,11 +128,10 @@ test_data$predictions<-predict_pro_size
 head(test_data, 100)
 #plot prediction and reality
 plot(test_data$Frequency, type="l", col="blue", xlab="X-label", ylab="Frequency")
-lines(test_data$predictions, col="red")
 plot(model, which = 2)
 
 ########## ANOVA ONE-WAY ##########
-anova_model<-aov(cbind(Frequency, Num_of_transistors, Process_size) ~ Vendor, data=DF)
+anova_model<-aov(Frequency ~ Vendor, data=DF) 
 summary(anova_model)
 
 #set significance
