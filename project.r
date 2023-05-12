@@ -50,22 +50,14 @@ DF<-DF[DF$Frequency > 1000,]
 DF$Density_of_transistor<-((DF$Num_of_transistors * 10 ^6)/ (DF$Die_size))
 head(DF)
 
-#categorize the process size
-DF$Category<-ifelse(DF$Process_size <= 32, "small", ifelse(DF$Process_size <= 65, "medium", "large"))
-head(DF)
-table(DF$Category)
 #summary
 summary(DF)
+
 #split to 2 group Intel and AMD
 intel<-DF[DF$Vendor == "Intel",]
 # head(intel)
 AMD<-DF[DF$Vendor == "AMD",]
 # head(AMD)
-
-#split to 3 category
-small<-DF[DF$Category == "small",]
-medium<-DF[DF$Category == "medium",]
-large<-DF[DF$Category == "large",]
 #Q Q plot
 par(mfrow=c(1,1))
 # qqnorm(DF$Die_size, main="Die_size")
@@ -86,34 +78,19 @@ par(mfrow=c(1,2))
 # qqnorm(DF$Num_of_transistors, main="Num_of_transistors")
 # qqline(DF$Num_of_transistors, col=6)
 
-par(mfrow=c(1, 1))
-#////////////////// test for anova //////////////////#
-#test normality
-p_test<-shapiro.test(DF$Frequency)
-p_test
-p_test<-p_test$p.value
-alpla<-0.05
-is_normal<-p_test > alpla
-is_normal
 
-#plotting distribution of data
-Process_size.plot<-ggplot(data = DF, aes(x = Process_size)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=15) + geom_density(color="red") + xlab("Process size") + ylab("Frequency")
-Process_size.plot # Normal --> can use anova
-
-Frequency.plot<-ggplot(data = DF, aes(x = Frequency)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=100) + geom_density(color="red") + xlab("Frequency of CPU") + ylab("Frequency")
-Frequency.plot
-
-num_of_trans.plot<-ggplot(data = DF, aes(x = Num_of_transistors)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=800) + geom_density(color="red") + xlab("Number of transistors") + ylab("Frequency")
-num_of_trans.plot
-#//////////////////////////////////////////////////#
 
 #Boxplot
 table(DF$Vendor)
-par(mfrow=c(1, 1))
-boxplot(DF$Frequency ~ DF$Vendor, data=DF, main="Frequency in CPU of each vendor", xlab="Category", ylab="Frequency of CPU")
+par(mfrow=c(3, 2))
+boxplot(DF$Frequency ~ DF$Vendor, data=DF, main="Frequency in CPU of each vendor", xlab="Vendors", ylab="Frequency of CPU")
+boxplot(DF$Die_size ~ DF$Vendor, data=DF, main="Die size in CPU of each vendor", xlab="Vendors", ylab="Die size of CPU")
+boxplot(DF$Process_size ~ DF$Vendor, data=DF, main="Process size in CPU of each vendor", xlab="Vendors", ylab="process size of CPU")
+boxplot(DF$Num_of_transistors ~ DF$Vendor, data=DF, main="Number of transistor in CPU of each vendor", xlab="Vendors", ylab="Transistor of CPU")
+boxplot(DF$TDP ~ DF$Vendor, data=DF, main="TDP in CPU of each vendor", xlab="Vendors", ylab="TDP of CPU")
 
 #QQ plot 2 vendors
-par(mfrow=c(1, 2), main = "Q-Q plot of 3 category of process size")
+par(mfrow=c(1, 2), main = "Q-Q plot of frequency of 2 vendors")
 
 qqnorm(intel$Frequency, main = "Normal Q-Q plot of intel frequency")
 qqline(intel$Frequency, col=6)
@@ -121,8 +98,21 @@ qqline(intel$Frequency, col=6)
 qqnorm(AMD$Frequency, main = "Normal Q-Q plot of AMD frequency")
 qqline(AMD$Frequency, col=6)
 
+#distribution of freq of each vendor
+AMD.plot<-ggplot(data = AMD, aes(x = Frequency)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=100) + geom_density(color="red") + xlab("Frequency of AMD") + ylab("Frequency")
+AMD.plot
 
-grid.arrange(small.plot, medium.plot, large.plot, ncol(3), nrow(1))
+intel.plot<-ggplot(data = intel, aes(x = Frequency)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=100) + geom_density(color="red") + xlab("Frequency of Intel") + ylab("Frequency")
+intel.plot
+
+grid.arrange(AMD.plot, intel.plot, ncol(2), nrow(1))
+
+#scatter of freq ~ multi
+par(mfrow=c(3, 2), main = "Scatter plot of frequency by factors")
+plot(Frequency ~ Die_size, data = DF)
+plot(Frequency ~ TDP, data = DF)
+plot(Frequency ~ Num_of_transistors, data = DF)
+plot(Frequency ~ Process_size, data = DF)
 
 ########## linear regression ##########
 #split data
@@ -134,7 +124,7 @@ head(test_data)
 head(train_data)
 
 #training model
-model<-lm(Frequency ~ TDP, data = train_data)
+model<-lm(Frequency ~ Die_size + Process_size + TDP + Num_of_transistors, data = train_data)
 summary(model)
 residual<-resid(model)
 par(mfrow=c(1, 1))
@@ -160,7 +150,42 @@ lines(test_data$Density_of_transistor, test_data$predictions, col="blue")
 plot(model, which = 2)
 
 
-########## ANOVA FOR FREQ ~ PROCESS SIZE ##########
+########## POLYNOMIAL LINEAR REGRESSION ##########
+die_sizePoly<- poly(train_data$Die_size, 2)
+num_transPoly<- poly(train_data$Num_of_transistors, 2)
+process_sizePoly<- poly(train_data$Process_size, 2)
+TDPPoly<- poly(train_data$TDP, 2)
+
+head(die_sizePoly)
+
+polyModel<-lm(Frequency ~ poly(Die_size, 1) + poly(Num_of_transistors, 2) + poly(Process_size, 2) + poly(TDP, 3) + poly(Num_of_transistors*Process_size, 2) + poly(Num_of_transistors*Die_size, 2), data = train_data)
+summary(polyModel)
+
+
+par(mfrow=c(1, 1))
+#////////////////// test for anova //////////////////#
+#test normality
+p_test<-shapiro.test(DF$Frequency)
+p_test
+p_test<-p_test$p.value
+alpla<-0.05
+is_normal<-p_test > alpla
+is_normal
+
+#plotting distribution of data
+# Process_size.plot<-ggplot(data = DF, aes(x = Process_size)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=15) + geom_density(color="red") + xlab("Process size") + ylab("Frequency")
+# Process_size.plot 
+
+Frequency.plot<-ggplot(data = DF, aes(x = Frequency)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=100) + geom_density(color="red") + xlab("Frequency of CPU") + ylab("Frequency")
+Frequency.plot # Normal --> can use anova
+
+# num_of_trans.plot<-ggplot(data = DF, aes(x = Num_of_transistors)) + geom_histogram(aes(y = ..density..), color="black", fill="lightblue", binwidth=800) + geom_density(color="red") + xlab("Number of transistors") + ylab("Frequency")
+# num_of_trans.plot
+#//////////////////////////////////////////////////#
+
+
+
+########## ANOVA FOR FREQ ~ VENDORS ##########
 
 #test for homogenity of variance#
 leveneTest(DF$Frequency ~ factor(DF$Vendor))
